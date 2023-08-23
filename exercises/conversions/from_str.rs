@@ -44,23 +44,34 @@ enum ParsePersonError {
 // As an aside: `Box<dyn Error>` implements `From<&'_ str>`. This means that if you want to return a
 // string error message, you can do so via just using return `Err("my error message".into())`.
 
-
 impl FromStr for Person {
-    type Err = Box<dyn error::Error>;
+    type Err = ParsePersonError;
     fn from_str(s: &str) -> Result<Person, Self::Err> {
-        let split = s.split(",").collect::<Vec<&str>>();
-        match split[..] {
-            [name, age] if !name.is_empty() => age
-                .parse::<usize>()
-                .map(|age| Self {
-                    name: name.to_string(),
-                    age,
-                })
-                .map_err(|_| From::from("Failed")),
-            _ => Err(From::from("Invalid input")),
+        if s.len() == 0 {
+            return Err(ParsePersonError::Empty);
         }
+
+        let str_items: Vec<&str> = s.split(",").collect();
+
+        if str_items.len() <= 1 || str_items.len() > 2 {
+            return Err(ParsePersonError::BadLen);
+        }
+
+        if str_items[0].len() == 0 {
+            return Err(ParsePersonError::NoName);
+        }
+
+        if let Err(error) = str_items[1].parse::<usize>() {
+            return Err(ParsePersonError::ParseInt(error));
+        }
+
+        Ok(Person {
+            age: str_items[1].parse::<usize>().unwrap(),
+            name: str_items[0].to_string(),
+        })
     }
 }
+
 
 
 
